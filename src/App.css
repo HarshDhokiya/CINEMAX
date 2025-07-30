@@ -1,0 +1,37 @@
+@import "tailwindcss";
+
+.app {
+  text-align: center;
+  padding: 2rem;
+  background-color: #d6caca;
+  min-height: 100vh;
+  ;
+}
+
+.search {
+  margin: 2rem 0;
+}
+
+.search input {
+  padding: 10px;
+  font-size: 16px;
+  width: 250px;
+}
+
+.search button {
+  padding: 10px 20px;
+  font-size: 16px;
+  margin-left: 10px;
+  cursor: pointer;
+
+}
+
+.movie-container {
+
+  display: flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  gap: 1rem;
+
+
+}
