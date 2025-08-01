@@ -49,11 +49,11 @@ export function MovieDetailsModal({ movie, isOpen, onClose }) {
                         <X className="w-6 h-6" />
                     </button>
 
-                    {/* Play trailer button */}
+         
                     {trailer && (
                         <a
                             href={`https://www.youtube.com/watch?v=${trailer.key}`}
-                            target="_blank"
+                            target="_blank" 
                             rel="noopener noreferrer"
                             className="absolute bottom-6 left-6 bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white px-6 py-3 rounded-full flex items-center gap-3 transition-all duration-300 font-semibold"
                         >

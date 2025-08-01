@@ -16,7 +16,7 @@ function App() {
   const [hasSearched, setHasSearched] = useState(false)
   const [selectedMovie, setSelectedMovie] = useState(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [isLoadingDetails, setIsLoadingDetails] = useState(false)
+  const [, setIsLoadingDetails] = useState(false)
 
   // Load popular movies on mount
   useEffect(() => {
@@ -29,8 +29,8 @@ function App() {
     try {
       const data = await movieApi.getPopularMovies()
       setMovies(data.results || [])
-    } catch (err) {
-      setError("Failed to load popular movies. Please try again.")
+    } catch (error) {
+      setError("Failed to load popular movies. Please try again.",error)
     } finally {
       setIsLoading(false)
     }
@@ -46,8 +46,8 @@ function App() {
     try {
       const data = await movieApi.searchMovies(searchQuery)
       setMovies(data.results || [])
-    } catch (err) {
-      setError("Failed to search movies. Please try again.")
+    } catch (error) {
+      setError("Failed to search movies. Please try again.",error)
     } finally {
       setIsLoading(false)
     }
@@ -60,8 +60,8 @@ function App() {
     try {
       const detailedMovie = await movieApi.getMovieDetails(movie.id)
       setSelectedMovie(detailedMovie)
-    } catch (err) {
-      console.error("Failed to load movie details:")
+    } catch (error) {
+      console.error("Failed to load movie details:",error)
       setSelectedMovie(movie)
     } finally {
       setIsLoadingDetails(false)
