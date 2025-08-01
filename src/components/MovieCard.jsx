@@ -1,16 +1,18 @@
 "use client"
 
 import { Star, Play, Calendar } from "lucide-react"
+import { useNavigate } from "react-router-dom"
 import { movieApi } from "../services/movieApi"
 
-export function MovieCard({ movie, onClick }) {
+export function MovieCard({ movie }) {
+  const navigate = useNavigate()
   const releaseYear = movie.release_date ? new Date(movie.release_date).getFullYear() : "N/A"
   const rating = movie.vote_average ? movie.vote_average.toFixed(1) : "N/A"
 
   return (
     <div
       className="group relative bg-gray-900/50 backdrop-blur-sm border border-gray-800 rounded-2xl overflow-hidden hover:border-purple-500/50 transition-all duration-500 cursor-pointer hover:scale-105"
-      onClick={() => onClick(movie)}
+      onClick={() => navigate(`/movie/${movie.id}`)}
     >
       {/* Glow effect on hover */}
       <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl opacity-0 group-hover:opacity-20 transition duration-500 blur" />

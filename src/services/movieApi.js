@@ -55,7 +55,40 @@ export const movieApi = {
     }
   },
 
-  getImageUrl: (path) => {
+  getMovieImages: async (movieId) => {
+    try {
+      const response = await fetch(`${BASE_URL}/movie/${movieId}/images?api_key=${API_KEY}`)
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch movie images")
+      }
+
+      const data = await response.json()
+      return data
+    } catch (error) {
+      console.error("Error fetching movie images:", error)
+      throw error
+    }
+  },
+
+  getWatchProviders: async (movieId) => {
+    try {
+      const response = await fetch(`${BASE_URL}/movie/${movieId}/watch/providers?api_key=${API_KEY}`)
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch watch providers")
+      }
+
+      const data = await response.json()
+      return data
+    } catch (error) {
+      console.error("Error fetching watch providers:", error)
+      throw error
+    }
+  },
+
+  getImageUrl: (path, size = "w500") => {
+    const IMAGE_BASE_URL = `https://image.tmdb.org/t/p/${size}`
     return path ? `${IMAGE_BASE_URL}${path}` : "/placeholder.svg?height=400&width=300"
   },
 }

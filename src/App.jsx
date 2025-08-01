@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Search, TrendingUp, Zap } from "lucide-react"
+import { Routes, Route, useNavigate } from "react-router-dom"
 import { SearchBar } from "./components/SearchBar"
 import { MovieCard } from "./components/MovieCard"
 import { LoadingSpinner } from "./components/LoadingSpinner"
@@ -14,9 +15,7 @@ function App() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
   const [hasSearched, setHasSearched] = useState(false)
-  const [selectedMovie, setSelectedMovie] = useState(null)
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [, setIsLoadingDetails] = useState(false)
+  const navigate = useNavigate()
 
   // Load popular movies on mount
   useEffect(() => {
@@ -29,8 +28,8 @@ function App() {
     try {
       const data = await movieApi.getPopularMovies()
       setMovies(data.results || [])
-    } catch (error) {
-      setError("Failed to load popular movies. Please try again.",error)
+    } catch (err) {
+      setError("Failed to load popular movies. Please try again.",err)
     } finally {
       setIsLoading(false)
     }
@@ -46,31 +45,15 @@ function App() {
     try {
       const data = await movieApi.searchMovies(searchQuery)
       setMovies(data.results || [])
-    } catch (error) {
-      setError("Failed to search movies. Please try again.",error)
+    } catch (err) {
+      setError("Failed to search movies. Please try again.", err)
     } finally {
       setIsLoading(false)
     }
   }
 
-  const handleMovieClick = async (movie) => {
-    setIsLoadingDetails(true)
-    setIsModalOpen(true)
-
-    try {
-      const detailedMovie = await movieApi.getMovieDetails(movie.id)
-      setSelectedMovie(detailedMovie)
-    } catch (error) {
-      console.error("Failed to load movie details:",error)
-      setSelectedMovie(movie)
-    } finally {
-      setIsLoadingDetails(false)
-    }
-  }
-
-  const handleCloseModal = () => {
-    setIsModalOpen(false)
-    setSelectedMovie(null)
+  const handleMovieClick = (movie) => {
+    navigate(`/movie/${movie.id}`)
   }
 
   const getTitle = () => {
@@ -183,7 +166,7 @@ function App() {
           {!isLoading && !error && movies.length === 0 && hasSearched && (
             <div className="text-center py-20">
               <div className="relative mb-8">
-                <div className="absolute -inset-4 bg-gradient-to-r from-purple-500/20  to-pink-500/20 rounded-full blur-xl" />
+                <div className="absolute -inset-4 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-full blur-xl" />
                 <div className="relative bg-gray-800 rounded-full w-24 h-24 flex items-center justify-center mx-auto border border-gray-700">
                   <Search className="w-12 h-12 text-gray-400" />
                 </div>
@@ -201,8 +184,11 @@ function App() {
             </div>
           )}
 
-          {/* Movie Details Modal */}
-          <MovieDetailsModal movie={selectedMovie} isOpen={isModalOpen} onClose={handleCloseModal} />
+          {/* Movie Details Modal - Now rendered via Route */}
+          <Routes>
+            <Route path="/movie/:movieId" element={<MovieDetailsModal />} />
+            <Route path="/" element={null} />
+          </Routes>
         </div>
       </main>
 
@@ -217,16 +203,15 @@ function App() {
           <p className="text-gray-400">
             Powered by{" "}
             <a
-              href="https://github.com/HarshDhokiya"
+              href="https://www.themoviedb.org/"
               target="_blank"
               rel="noopener noreferrer"
               className="text-purple-400 hover:text-purple-300 transition-colors font-medium"
             >
-              Harsh❤️
+              The Movie Database
             </a>
           </p>
         </div>
-  
       </footer>
     </div>
   )
