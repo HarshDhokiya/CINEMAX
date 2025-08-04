@@ -2,34 +2,88 @@
 
 import { useState, useEffect } from "react"
 import { Search, TrendingUp, Zap } from "lucide-react"
-import { Routes, Route, useNavigate } from "react-router-dom"
+import { Routes, Route, useNavigate, useSearchParams } from "react-router-dom"
 import { SearchBar } from "./components/SearchBar"
 import { MovieCard } from "./components/MovieCard"
 import { LoadingSpinner } from "./components/LoadingSpinner"
 import { MovieDetailsModal } from "./components/MovieDetailsModal"
+import { ContentTypeSelector } from "./components/ContentTypeSelector"
 import { movieApi } from "./services/movieApi"
 
 function App() {
-  const [movies, setMovies] = useState([])
+  const [content, setContent] = useState([])
   const [searchQuery, setSearchQuery] = useState("")
+  const [contentType, setContentType] = useState("all") // 'all', 'movie', 'tv'
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
   const [hasSearched, setHasSearched] = useState(false)
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
 
-  // Load popular movies on mount
+  // Listen for URL parameter changes (including browser back/forward)
   useEffect(() => {
-    loadPopularMovies()
-  }, [])
+    const urlQuery = searchParams.get("q") || ""
+    const urlType = searchParams.get("type") || "all"
 
-  const loadPopularMovies = async () => {
+    // Update local state to match URL
+    setSearchQuery(urlQuery)
+    setContentType(urlType)
+
+    if (urlQuery) {
+      setHasSearched(true)
+      performSearch(urlQuery, urlType)
+    } else {
+      setHasSearched(false)
+      loadTrendingContent(urlType)
+    }
+  }, [searchParams]) // Re-run whenever URL search params change
+
+  const loadTrendingContent = async (type = contentType) => {
     setIsLoading(true)
     setError(null)
     try {
-      const data = await movieApi.getPopularMovies()
-      setMovies(data.results || [])
+      let data
+      if (type === "movie") {
+        data = await movieApi.getPopularMovies()
+        // Add media_type to movie results
+        data.results = data.results.map((item) => ({ ...item, media_type: "movie" }))
+      } else if (type === "tv") {
+        data = await movieApi.getPopularTVShows()
+        // Add media_type to TV results
+        data.results = data.results.map((item) => ({ ...item, media_type: "tv" }))
+      } else {
+        data = await movieApi.getTrending()
+      }
+      setContent(data.results || [])
     } catch (err) {
-      setError("Failed to load popular movies. Please try again.",err)
+      setError("Failed to load content. Please try again.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const performSearch = async (query, type = contentType) => {
+    if (!query.trim()) return
+
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      let data
+      if (type === "movie") {
+        data = await movieApi.searchMovies(query)
+        // Add media_type to movie results
+        data.results = data.results.map((item) => ({ ...item, media_type: "movie" }))
+      } else if (type === "tv") {
+        data = await movieApi.searchTVShows(query)
+        // Add media_type to TV results
+        data.results = data.results.map((item) => ({ ...item, media_type: "tv" }))
+      } else {
+        data = await movieApi.searchMulti(query)
+      }
+      setContent(data.results || [])
+    } catch (err) {
+      setError("Failed to search content. Please try again.")
     } finally {
       setIsLoading(false)
     }
@@ -38,34 +92,63 @@ function App() {
   const handleSearch = async () => {
     if (!searchQuery.trim()) return
 
-    setIsLoading(true)
-    setError(null)
-    setHasSearched(true)
-
-    try {
-      const data = await movieApi.searchMovies(searchQuery)
-      setMovies(data.results || [])
-    } catch (err) {
-      setError("Failed to search movies. Please try again.", err)
-    } finally {
-      setIsLoading(false)
+    // Update URL with search parameters
+    const params = new URLSearchParams()
+    params.set("q", searchQuery)
+    if (contentType !== "all") {
+      params.set("type", contentType)
     }
+    setSearchParams(params)
+    // The useEffect will handle the actual search when searchParams changes
   }
 
-  const handleMovieClick = (movie) => {
-    navigate(`/movie/${movie.id}`)
+  const handleContentTypeChange = (newType) => {
+    const params = new URLSearchParams(searchParams)
+
+    if (newType !== "all") {
+      params.set("type", newType)
+    } else {
+      params.delete("type")
+    }
+
+    setSearchParams(params)
+    // The useEffect will handle loading content when searchParams changes
+  }
+
+  const handleContentClick = (item) => {
+    const mediaType = item.media_type || (item.title ? "movie" : "tv")
+    navigate(`/${mediaType}/${item.id}`)
+  }
+
+  const handleShowTrending = () => {
+    // Clear all search parameters to go back to trending
+    setSearchParams({})
+    // The useEffect will handle loading trending content
   }
 
   const getTitle = () => {
-    if (!hasSearched) return "Trending Now"
-    if (searchQuery) return `Results for "${searchQuery}"`
-    return "Movies"
+    if (!hasSearched) {
+      if (contentType === "movie") return "Popular Movies"
+      if (contentType === "tv") return "Popular TV Shows"
+      return "Trending Now"
+    }
+    if (searchQuery) {
+      if (contentType === "movie") return `Movie Results for "${searchQuery}"`
+      if (contentType === "tv") return `TV Show Results for "${searchQuery}"`
+      return `Results for "${searchQuery}"`
+    }
+    return "Content"
   }
 
   const getSubtitle = () => {
-    if (!hasSearched) return "Discover the hottest movies everyone's talking about"
-    if (movies.length === 0 && !isLoading) return "No movies found. Try a different search term."
-    return `${movies.length} movie${movies.length !== 1 ? "s" : ""} found`
+    if (!hasSearched) {
+      if (contentType === "movie") return "Discover the most popular movies right now"
+      if (contentType === "tv") return "Discover the most popular TV shows and series"
+      return "Discover the hottest movies and TV shows everyone's talking about"
+    }
+    if (content.length === 0 && !isLoading) return "No content found. Try a different search term."
+    const itemType = contentType === "movie" ? "movie" : contentType === "tv" ? "TV show" : "item"
+    return `${content.length} ${itemType}${content.length !== 1 ? "s" : ""} found`
   }
 
   return (
@@ -100,13 +183,16 @@ function App() {
                 </span>
                 <br />
                 <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                  MOVIES
+                  ENTERTAINMENT
                 </span>
               </h2>
               <p className="text-xl text-gray-300 max-w-2xl mx-auto leading-relaxed">
-                Explore the world of cinema with our cutting-edge movie discovery platform
+                Explore the world of movies, TV shows, and web series with our cutting-edge discovery platform
               </p>
             </div>
+
+            {/* Content Type Selector */}
+            <ContentTypeSelector contentType={contentType} setContentType={handleContentTypeChange} />
 
             {/* Search Bar */}
             <div className="flex justify-center mb-16">
@@ -142,7 +228,7 @@ function App() {
             <div className="bg-red-900/20 border border-red-500/30 rounded-2xl p-8 mb-8 text-center backdrop-blur-sm">
               <p className="text-red-300 font-medium text-lg">{error}</p>
               <button
-                onClick={hasSearched ? handleSearch : loadPopularMovies}
+                onClick={hasSearched ? handleSearch : () => loadTrendingContent()}
                 className="mt-6 bg-gradient-to-r from-red-500 to-pink-500 text-white px-8 py-3 rounded-xl hover:from-red-600 hover:to-pink-600 transition-all duration-300 font-semibold"
               >
                 Try Again
@@ -153,17 +239,21 @@ function App() {
           {/* Loading State */}
           {isLoading && <LoadingSpinner />}
 
-          {/* Movies Grid */}
+          {/* Content Grid */}
           {!isLoading && !error && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-8">
-              {movies.map((movie) => (
-                <MovieCard key={movie.id} movie={movie} onClick={() => handleMovieClick(movie)} />
+              {content.map((item) => (
+                <MovieCard
+                  key={`${item.media_type || "unknown"}-${item.id}`}
+                  item={item}
+                  onClick={() => handleContentClick(item)}
+                />
               ))}
             </div>
           )}
 
           {/* Empty State */}
-          {!isLoading && !error && movies.length === 0 && hasSearched && (
+          {!isLoading && !error && content.length === 0 && hasSearched && (
             <div className="text-center py-20">
               <div className="relative mb-8">
                 <div className="absolute -inset-4 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-full blur-xl" />
@@ -171,22 +261,25 @@ function App() {
                   <Search className="w-12 h-12 text-gray-400" />
                 </div>
               </div>
-              <h3 className="text-3xl font-bold text-white mb-4">No Movies Found</h3>
+              <h3 className="text-3xl font-bold text-white mb-4">No Content Found</h3>
               <p className="text-gray-400 text-lg mb-8 max-w-md mx-auto">
-                {"We couldn't find any movies matching your search. Try different keywords or explore trending movies."}
+                {
+                  "We couldn't find any content matching your search. Try different keywords or explore trending content."
+                }
               </p>
               <button
-                onClick={loadPopularMovies}
+                onClick={handleShowTrending}
                 className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-8 py-4 rounded-xl hover:from-purple-600 hover:to-pink-600 transition-all duration-300 font-semibold text-lg"
               >
-                Show Trending Movies
+                Show Trending Content
               </button>
             </div>
           )}
 
-          {/* Movie Details Modal - Now rendered via Route */}
+          {/* Content Details Modal - Now rendered via Route */}
           <Routes>
-            <Route path="/movie/:movieId" element={<MovieDetailsModal />} />
+            <Route path="/movie/:contentId" element={<MovieDetailsModal mediaType="movie" />} />
+            <Route path="/tv/:contentId" element={<MovieDetailsModal mediaType="tv" />} />
             <Route path="/" element={null} />
           </Routes>
         </div>
