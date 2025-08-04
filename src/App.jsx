@@ -294,14 +294,14 @@ function App() {
             <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse delay-150" />
           </div>
           <p className="text-gray-400">
-            Powered by{" "}
+            Created by{" "}
             <a
-              href="https://www.themoviedb.org/"
+              href="https://github.com/HarshDhokiya"
               target="_blank"
               rel="noopener noreferrer"
               className="text-purple-400 hover:text-purple-300 transition-colors font-medium"
             >
-              The Movie Database
+             Harsh Dhokiya
             </a>
           </p>
         </div>
